@@ -3,7 +3,10 @@ package core
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"strings"
 	"time"
 
@@ -49,8 +52,28 @@ func (p Proxy) proxyHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Subdomain not found", http.StatusNotFound)
 			return
 		}
+
+		log.Printf("Erro ao consultar o MongoDB: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
 	}
 
+	targetURL, err := url.Parse(route.TargetURL)
+	if err != nil {
+		log.Printf("Invalid target url to domain %s: %s", subdomain, route.TargetURL)
+		http.Error(w, "Invalid route config", http.StatusInternalServerError)
+		return
+	}
+
+	proxy := httputil.NewSingleHostReverseProxy(targetURL)
+	originalDirector := proxy.Director
+	proxy.Director = func(req *http.Request) {
+		originalDirector(req)
+		req.Host = targetURL.Host
+	}
+
+	log.Printf("Redirecionando: %s (subdomínio: %s) -> %s", r.Host, subdomain, targetURL.String())
+	proxy.ServeHTTP(w, r)
 }
 
 func (p *Proxy) Listen(addr string, port int) error {
