@@ -5,12 +5,18 @@ import (
 
 	"github.com/damiaoterto/vendas-proxy/internal/config"
 	"github.com/damiaoterto/vendas-proxy/internal/core"
+	"github.com/damiaoterto/vendas-proxy/internal/database"
 )
 
 func main() {
-	_, err := config.Load()
+	config, err := config.Load()
 	if err != nil {
-		log.Fatalf("Fail on load app config")
+		log.Fatal("Fail on load app config")
+	}
+
+	_, err = database.ConnectFromURI(config.MongoDB.URI)
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	proxy := core.NewProxy("0.0.0.0", 8080)
