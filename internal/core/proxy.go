@@ -1,10 +1,14 @@
 package core
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
+	"github.com/damiaoterto/vendas-proxy/internal/model"
+	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
@@ -32,8 +36,23 @@ func (p Proxy) proxyHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	subdomain := hostParts[0]
 
-	fmt.Println(subdomain)
+	collection := p.mongo.Database("ProxyDB").Collection("routes")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var route model.Route
+	filter := bson.M{"subdomain": subdomain}
+
+	err := collection.FindOne(ctx, filter).Decode(&route)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			http.Error(w, "Subdomain not found", http.StatusNotFound)
+			return
+		}
+	}
+
 }
+
 func (p *Proxy) Listen(addr string, port int) error {
 	p.mux.HandleFunc("/", p.proxyHandler)
 
