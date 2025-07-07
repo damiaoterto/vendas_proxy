@@ -14,13 +14,13 @@ func main() {
 		log.Fatal("Fail on load app config")
 	}
 
-	_, err = database.ConnectFromURI(config.MongoDB.URI)
+	mongoConn, err := database.ConnectFromURI(config.MongoDB.URI)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	proxy := core.NewProxy("0.0.0.0", 8080)
-	if err := proxy.Listen(); err != nil {
+	proxy := core.NewProxy(mongoConn)
+	if err := proxy.Listen("0.0.0.0", 8080); err != nil {
 		log.Fatal(err)
 	}
 }

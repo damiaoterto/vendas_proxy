@@ -22,5 +22,7 @@ func ConnectFromURI(uri string) (*mongo.Client, error) {
 
 	_ = client.Ping(ctx, readpref.Primary())
 
+	defer client.Disconnect(ctx)
+
 	return client, err
 }

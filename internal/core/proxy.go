@@ -4,17 +4,18 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+
+	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
 type Proxy struct {
-	mux  *http.ServeMux
-	addr string
-	port int
+	mux   *http.ServeMux
+	mongo *mongo.Client
 }
 
-func NewProxy(addr string, port int) *Proxy {
+func NewProxy(mongo *mongo.Client) *Proxy {
 	mux := http.NewServeMux()
-	return &Proxy{addr: addr, port: port, mux: mux}
+	return &Proxy{mongo: mongo, mux: mux}
 }
 
 func (p Proxy) proxyHandler(w http.ResponseWriter, r *http.Request) {
@@ -33,10 +34,10 @@ func (p Proxy) proxyHandler(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Println(subdomain)
 }
-func (p *Proxy) Listen() error {
+func (p *Proxy) Listen(addr string, port int) error {
 	p.mux.HandleFunc("/", p.proxyHandler)
 
-	addr := fmt.Sprintf("%s:%d", p.addr, p.port)
+	addr = fmt.Sprintf("%s:%d", addr, port)
 
 	if err := http.ListenAndServe(addr, p.mux); err != nil {
 		return fmt.Errorf("error on start http server: %v", err)
