@@ -2,28 +2,43 @@ package config
 
 import (
 	"fmt"
+	"log"
 	"os"
+	"path/filepath"
 	"strings"
+
+	"github.com/joho/godotenv"
 )
 
-type MongoDB struct {
-	URI string
-}
-
 type AppConfig struct {
-	MongoDB
+	MongoDB struct {
+		URI string
+	}
 }
 
-func NewConfig() (*AppConfig, error) {
+func Load() (*AppConfig, error) {
+	cwdDir, err := os.Getwd()
+	if err != nil {
+		return nil, fmt.Errorf("fail on get workdir")
+
+	}
+
+	envDir := filepath.Join(cwdDir, ".env")
+	_, err = os.Stat(envDir)
+	if os.IsNotExist(err) {
+		log.Println("The .env file not exists")
+	} else {
+		godotenv.Load()
+	}
+
 	mongoURI := os.Getenv("MONGODB_URI")
 	if strings.Trim(mongoURI, " ") == "" {
 		return nil, fmt.Errorf("invalid value for MONGODB_URI")
 
 	}
 
-	return &AppConfig{
-		MongoDB: MongoDB{
-			URI: mongoURI,
-		},
-	}, nil
+	config := &AppConfig{}
+	config.MongoDB.URI = mongoURI
+
+	return config, nil
 }
