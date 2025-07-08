@@ -41,6 +41,8 @@ func (p Proxy) proxyHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	subdomain := hostParts[0]
 
+	log.Printf("Start proxy with subdomain %s", subdomain)
+
 	collection := p.mongo.Database(p.config.MongoDB.Database).Collection(p.config.MongoDB.Collection)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
