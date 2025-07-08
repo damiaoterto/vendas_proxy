@@ -11,7 +11,7 @@ import (
 func main() {
 	config, err := config.Load()
 	if err != nil {
-		log.Fatal("Fail on load app config")
+		log.Fatalf("fail on load app config: %v", err)
 	}
 
 	mongoConn, err := database.ConnectFromURI(config.MongoDB.URI)
@@ -19,7 +19,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	proxy := core.NewProxy(mongoConn)
+	proxy := core.NewProxy(config, mongoConn)
 	if err := proxy.Listen("0.0.0.0", 8080); err != nil {
 		log.Fatal(err)
 	}

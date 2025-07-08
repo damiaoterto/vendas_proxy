@@ -12,7 +12,9 @@ import (
 
 type AppConfig struct {
 	MongoDB struct {
-		URI string
+		URI        string
+		Database   string
+		Collection string
 	}
 }
 
@@ -39,6 +41,8 @@ func Load() (*AppConfig, error) {
 
 	config := &AppConfig{}
 	config.MongoDB.URI = mongoURI
+	config.MongoDB.Database = os.Getenv("MONGODB_DATABASE")
+	config.MongoDB.Collection = os.Getenv("MONGODB_COLLECTION")
 
 	return config, nil
 }

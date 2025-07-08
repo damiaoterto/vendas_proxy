@@ -10,17 +10,19 @@ import (
 	"strings"
 	"time"
 
+	"github.com/damiaoterto/vendas-proxy/internal/config"
 	"github.com/damiaoterto/vendas-proxy/internal/model"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
 type Proxy struct {
-	mux   *http.ServeMux
-	mongo *mongo.Client
+	mux    *http.ServeMux
+	mongo  *mongo.Client
+	config *config.AppConfig
 }
 
-func NewProxy(mongo *mongo.Client) *Proxy {
+func NewProxy(config *config.AppConfig, mongo *mongo.Client) *Proxy {
 	mux := http.NewServeMux()
 	return &Proxy{mongo: mongo, mux: mux}
 }
@@ -39,7 +41,7 @@ func (p Proxy) proxyHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	subdomain := hostParts[0]
 
-	collection := p.mongo.Database("ProxyDB").Collection("routes")
+	collection := p.mongo.Database(p.config.MongoDB.Database).Collection(p.config.MongoDB.Collection)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
