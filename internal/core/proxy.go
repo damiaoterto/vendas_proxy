@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -22,9 +23,53 @@ type Proxy struct {
 	config *config.AppConfig
 }
 
+type RouteData struct {
+	Subdomain string `json:"subdomain"`
+	TargetURL string `json:"target_url"`
+}
+
 func NewProxy(config *config.AppConfig, mongo *mongo.Client) *Proxy {
 	mux := http.NewServeMux()
 	return &Proxy{mongo: mongo, mux: mux}
+}
+
+func (p Proxy) CreateNewRoute(w http.ResponseWriter, r *http.Request) {
+	var routeData RouteData
+	if err := json.NewDecoder(r.Body).Decode(&routeData); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	collection := p.mongo.Database(p.config.MongoDB.Database).Collection(p.config.MongoDB.Collection)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	route := model.Route{
+		Subdomain: routeData.Subdomain,
+		TargetURL: routeData.TargetURL,
+		IsActive:  true,
+	}
+
+	_, err := collection.InsertOne(ctx, route)
+	if err != nil {
+		log.Printf("Error inserting route into MongoDB: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]string{
+		"message": "Route created successfully",
+		"subdomain": routeData.Subdomain,
+		"target_url": routeData.TargetURL,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("Error encoding response: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
 }
 
 func (p Proxy) proxyHandler(w http.ResponseWriter, r *http.Request) {
