@@ -127,6 +127,7 @@ func (p Proxy) proxyHandler(w http.ResponseWriter, r *http.Request) {
 
 func (p *Proxy) Listen(addr string, port int) error {
 	p.mux.HandleFunc("/", p.proxyHandler)
+	p.mux.HandleFunc("/routes", p.CreateNewRoute)
 
 	addr = fmt.Sprintf("%s:%d", addr, port)
 
