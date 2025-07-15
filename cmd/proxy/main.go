@@ -19,6 +19,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer mongo.Disconnect()
 
 	proxy := core.NewProxy(config, mongoConn)
 	if err := proxy.Listen("0.0.0.0", 8080); err != nil {
