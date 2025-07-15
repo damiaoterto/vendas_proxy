@@ -14,7 +14,8 @@ func main() {
 		log.Fatalf("fail on load app config: %v", err)
 	}
 
-	mongoConn, err := database.ConnectFromURI(config.MongoDB.URI)
+	mongo := database.NewMongoDB(config.MongoDB.URI)
+	mongoConn, err := mongo.Connect()
 	if err != nil {
 		log.Fatal(err)
 	}

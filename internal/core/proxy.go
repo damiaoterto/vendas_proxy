@@ -13,12 +13,12 @@ import (
 
 	"github.com/damiaoterto/vendas-proxy/internal/config"
 	"github.com/damiaoterto/vendas-proxy/internal/model"
+	"github.com/gorilla/mux"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
 type Proxy struct {
-	mux    *http.ServeMux
 	mongo  *mongo.Client
 	config *config.AppConfig
 }
@@ -29,8 +29,7 @@ type RouteData struct {
 }
 
 func NewProxy(config *config.AppConfig, mongo *mongo.Client) *Proxy {
-	mux := http.NewServeMux()
-	return &Proxy{mongo: mongo, mux: mux}
+	return &Proxy{config: config, mongo: mongo}
 }
 
 func (p Proxy) CreateNewRoute(w http.ResponseWriter, r *http.Request) {
@@ -58,8 +57,8 @@ func (p Proxy) CreateNewRoute(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response := map[string]string{
-		"message": "Route created successfully",
-		"subdomain": routeData.Subdomain,
+		"message":    "Route created successfully",
+		"subdomain":  routeData.Subdomain,
 		"target_url": routeData.TargetURL,
 	}
 
@@ -126,12 +125,14 @@ func (p Proxy) proxyHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (p *Proxy) Listen(addr string, port int) error {
-	p.mux.HandleFunc("/", p.proxyHandler)
-	p.mux.HandleFunc("/routes", p.CreateNewRoute)
+	r := mux.NewRouter()
+
+	r.HandleFunc("/", p.proxyHandler).Methods("GET")
+	r.HandleFunc("/routes", p.CreateNewRoute).Methods("POST")
 
 	addr = fmt.Sprintf("%s:%d", addr, port)
 
-	if err := http.ListenAndServe(addr, p.mux); err != nil {
+	if err := http.ListenAndServe(addr, r); err != nil {
 		return fmt.Errorf("error on start http server: %v", err)
 	}
 
